@@ -14,8 +14,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-from skills.network.scanner import scan_lan, get_local_subnet
-from skills.network.wol import wake_on_lan
+from skills.network.lan_scanner import scan_lan, get_local_subnet
+from skills.network.wake_on_lan import wake_on_lan
 from skills.network.port_scanner import scan_ports
 from skills.network.ping import ping_host
 

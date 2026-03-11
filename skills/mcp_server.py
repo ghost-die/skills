@@ -18,8 +18,8 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from skills.network.scanner import scan_lan as _scan_lan
-from skills.network.wol import wake_on_lan as _wake_on_lan
+from skills.network.lan_scanner import scan_lan as _scan_lan
+from skills.network.wake_on_lan import wake_on_lan as _wake_on_lan
 from skills.network.port_scanner import scan_ports as _scan_ports
 from skills.network.ping import ping_host as _ping_host
 

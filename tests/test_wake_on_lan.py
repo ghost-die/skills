@@ -1,5 +1,5 @@
 """
-Tests for skills.network.wol
+Tests for skills.network.wake_on_lan
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from skills.network.wol import (
+from skills.network.wake_on_lan import (
     _normalise_mac,
     build_magic_packet,
     send_magic_packet,
@@ -80,7 +80,7 @@ class TestSendMagicPacket:
         mock_socket.__enter__ = MagicMock(return_value=mock_socket)
         mock_socket.__exit__ = MagicMock(return_value=False)
 
-        with patch("skills.network.wol.socket.socket", return_value=mock_socket):
+        with patch("skills.network.wake_on_lan.socket.socket", return_value=mock_socket):
             send_magic_packet(mac)
 
         mock_socket.setsockopt.assert_called_once_with(
@@ -94,7 +94,7 @@ class TestSendMagicPacket:
         mock_socket.__enter__ = MagicMock(return_value=mock_socket)
         mock_socket.__exit__ = MagicMock(return_value=False)
 
-        with patch("skills.network.wol.socket.socket", return_value=mock_socket):
+        with patch("skills.network.wake_on_lan.socket.socket", return_value=mock_socket):
             send_magic_packet(
                 "aa:bb:cc:dd:ee:ff",
                 broadcast="192.168.1.255",
@@ -106,7 +106,7 @@ class TestSendMagicPacket:
 
 class TestWakeOnLan:
     def test_success_returns_dict(self):
-        with patch("skills.network.wol.send_magic_packet") as mock_send:
+        with patch("skills.network.wake_on_lan.send_magic_packet") as mock_send:
             result = wake_on_lan("aa:bb:cc:dd:ee:ff")
 
         assert result["success"] is True
@@ -123,7 +123,7 @@ class TestWakeOnLan:
 
     def test_failure_on_socket_error(self):
         with patch(
-            "skills.network.wol.send_magic_packet",
+            "skills.network.wake_on_lan.send_magic_packet",
             side_effect=OSError("socket error"),
         ):
             result = wake_on_lan("aa:bb:cc:dd:ee:ff")
@@ -132,7 +132,7 @@ class TestWakeOnLan:
         assert "socket error" in result["error"]
 
     def test_custom_broadcast(self):
-        with patch("skills.network.wol.send_magic_packet") as mock_send:
+        with patch("skills.network.wake_on_lan.send_magic_packet") as mock_send:
             result = wake_on_lan(
                 "aa:bb:cc:dd:ee:ff",
                 broadcast="192.168.0.255",
@@ -146,6 +146,6 @@ class TestWakeOnLan:
         )
 
     def test_default_broadcast_is_255(self):
-        with patch("skills.network.wol.send_magic_packet"):
+        with patch("skills.network.wake_on_lan.send_magic_packet"):
             result = wake_on_lan("aa:bb:cc:dd:ee:ff")
         assert result["broadcast"] == "255.255.255.255"

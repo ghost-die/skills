@@ -1,5 +1,5 @@
 """
-Tests for skills.network.scanner
+Tests for skills.network.lan_scanner
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from skills.network.scanner import (
+from skills.network.lan_scanner import (
     Device,
     _read_arp_cache,
     _resolve_hostname,
@@ -45,7 +45,7 @@ class TestGetLocalSubnet:
         assert net.prefixlen == 24
 
     def test_raises_on_socket_error(self):
-        with patch("skills.network.scanner.socket.socket") as mock_sock_cls:
+        with patch("skills.network.lan_scanner.socket.socket") as mock_sock_cls:
             mock_sock = MagicMock()
             mock_sock.__enter__ = MagicMock(return_value=mock_sock)
             mock_sock.__exit__ = MagicMock(return_value=False)
@@ -58,24 +58,24 @@ class TestGetLocalSubnet:
 
 class TestResolveHostname:
     def test_returns_string_on_success(self):
-        with patch("skills.network.scanner.socket.gethostbyaddr") as mock:
+        with patch("skills.network.lan_scanner.socket.gethostbyaddr") as mock:
             mock.return_value = ("myhost", [], ["192.168.1.5"])
             assert _resolve_hostname("192.168.1.5") == "myhost"
 
     def test_returns_empty_on_failure(self):
         import socket as _socket
-        with patch("skills.network.scanner.socket.gethostbyaddr") as mock:
+        with patch("skills.network.lan_scanner.socket.gethostbyaddr") as mock:
             mock.side_effect = _socket.herror()
             assert _resolve_hostname("192.168.1.99") == ""
 
     def test_returns_empty_on_timeout(self):
         import socket as _socket
-        with patch("skills.network.scanner.socket.gethostbyaddr") as mock:
+        with patch("skills.network.lan_scanner.socket.gethostbyaddr") as mock:
             mock.side_effect = _socket.timeout("timed out")
             assert _resolve_hostname("192.168.1.100") == ""
 
     def test_returns_empty_on_os_error(self):
-        with patch("skills.network.scanner.socket.gethostbyaddr") as mock:
+        with patch("skills.network.lan_scanner.socket.gethostbyaddr") as mock:
             mock.side_effect = OSError("network unreachable")
             assert _resolve_hostname("192.168.1.101") == ""
 
@@ -154,9 +154,9 @@ class TestScanLan:
             Device(ip="192.168.1.2", mac="aa:aa:aa:aa:aa:aa"),
             Device(ip="192.168.1.5", mac="bb:bb:bb:bb:bb:bb"),
         ]
-        with patch("skills.network.scanner._NMAP_AVAILABLE", False), \
-             patch("skills.network.scanner._SCAPY_AVAILABLE", False), \
-             patch("skills.network.scanner._scan_with_ping", return_value=fake_devices):
+        with patch("skills.network.lan_scanner._NMAP_AVAILABLE", False), \
+             patch("skills.network.lan_scanner._SCAPY_AVAILABLE", False), \
+             patch("skills.network.lan_scanner._scan_with_ping", return_value=fake_devices):
             result = scan_lan(subnet="192.168.1.0/24")
 
         ips = [d.ip for d in result]
@@ -164,10 +164,10 @@ class TestScanLan:
 
     def test_scan_uses_nmap_when_available(self):
         fake_devices = [Device(ip="10.0.0.1", mac="de:ad:be:ef:00:01", hostname="mypc")]
-        with patch("skills.network.scanner._NMAP_AVAILABLE", True), \
-             patch("skills.network.scanner._scan_with_nmap", return_value=fake_devices) as mock_nmap, \
-             patch("skills.network.scanner._SCAPY_AVAILABLE", False), \
-             patch("skills.network.scanner._scan_with_ping") as mock_ping:
+        with patch("skills.network.lan_scanner._NMAP_AVAILABLE", True), \
+             patch("skills.network.lan_scanner._scan_with_nmap", return_value=fake_devices) as mock_nmap, \
+             patch("skills.network.lan_scanner._SCAPY_AVAILABLE", False), \
+             patch("skills.network.lan_scanner._scan_with_ping") as mock_ping:
             result = scan_lan(subnet="10.0.0.0/24")
 
         mock_nmap.assert_called_once()
@@ -177,10 +177,10 @@ class TestScanLan:
 
     def test_scan_uses_scapy_when_nmap_unavailable(self):
         fake_devices = [Device(ip="10.0.0.1", mac="de:ad:be:ef:00:01")]
-        with patch("skills.network.scanner._NMAP_AVAILABLE", False), \
-             patch("skills.network.scanner._SCAPY_AVAILABLE", True), \
-             patch("skills.network.scanner._scan_with_scapy", return_value=fake_devices) as mock_scapy, \
-             patch("skills.network.scanner._scan_with_ping") as mock_ping:
+        with patch("skills.network.lan_scanner._NMAP_AVAILABLE", False), \
+             patch("skills.network.lan_scanner._SCAPY_AVAILABLE", True), \
+             patch("skills.network.lan_scanner._scan_with_scapy", return_value=fake_devices) as mock_scapy, \
+             patch("skills.network.lan_scanner._scan_with_ping") as mock_ping:
             result = scan_lan(subnet="10.0.0.0/24")
 
         mock_scapy.assert_called_once()
@@ -188,10 +188,10 @@ class TestScanLan:
         assert len(result) == 1
 
     def test_scan_auto_detects_subnet(self):
-        with patch("skills.network.scanner.get_local_subnet", return_value="172.16.0.0/24"), \
-             patch("skills.network.scanner._NMAP_AVAILABLE", False), \
-             patch("skills.network.scanner._SCAPY_AVAILABLE", False), \
-             patch("skills.network.scanner._scan_with_ping", return_value=[]) as mock_ping:
+        with patch("skills.network.lan_scanner.get_local_subnet", return_value="172.16.0.0/24"), \
+             patch("skills.network.lan_scanner._NMAP_AVAILABLE", False), \
+             patch("skills.network.lan_scanner._SCAPY_AVAILABLE", False), \
+             patch("skills.network.lan_scanner._scan_with_ping", return_value=[]) as mock_ping:
             scan_lan()
 
         call_args = mock_ping.call_args
