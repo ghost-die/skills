@@ -105,6 +105,60 @@ class TestMcpServerTools:
             port=7,
         )
 
+    def test_scan_ports_returns_list_of_dicts(self):
+        from skills.mcp_server import scan_ports
+
+        fake_results = [
+            {"port": 22, "service": "ssh", "state": "open"},
+            {"port": 80, "service": "http", "state": "open"},
+        ]
+        with patch("skills.mcp_server._scan_ports", return_value=fake_results):
+            result = scan_ports("192.168.1.1")
+
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0]["port"] == 22
+
+    def test_scan_ports_passes_params(self):
+        from skills.mcp_server import scan_ports
+
+        with patch("skills.mcp_server._scan_ports", return_value=[]) as mock:
+            scan_ports("10.0.0.1", ports=[22, 80], timeout=0.5)
+
+        mock.assert_called_once_with(host="10.0.0.1", ports=[22, 80], timeout=0.5)
+
+    def test_ping_host_reachable(self):
+        from skills.mcp_server import ping_host
+
+        fake_result = {
+            "host": "8.8.8.8",
+            "reachable": True,
+            "sent": 4,
+            "received": 4,
+            "packet_loss_pct": 0.0,
+            "rtt_min_ms": 10.0,
+            "rtt_avg_ms": 12.0,
+            "rtt_max_ms": 15.0,
+            "error": None,
+        }
+        with patch("skills.mcp_server._ping_host", return_value=fake_result):
+            result = ping_host("8.8.8.8")
+
+        assert result["reachable"] is True
+        assert result["rtt_avg_ms"] == 12.0
+
+    def test_ping_host_passes_params(self):
+        from skills.mcp_server import ping_host
+
+        fake_result = {"host": "1.1.1.1", "reachable": False, "sent": 2,
+                       "received": 0, "packet_loss_pct": 100.0,
+                       "rtt_min_ms": None, "rtt_avg_ms": None,
+                       "rtt_max_ms": None, "error": None}
+        with patch("skills.mcp_server._ping_host", return_value=fake_result) as mock:
+            ping_host("1.1.1.1", count=2, timeout=1.0)
+
+        mock.assert_called_once_with(host="1.1.1.1", count=2, timeout=1.0)
+
 
 class TestMcpServerRegistration:
     """Test that the MCP server registers tools correctly."""
@@ -117,6 +171,8 @@ class TestMcpServerRegistration:
         tool_names = [t.name for t in tools]
         assert "scan_lan" in tool_names
         assert "wake_on_lan" in tool_names
+        assert "scan_ports" in tool_names
+        assert "ping_host" in tool_names
 
     def test_scan_lan_tool_has_description(self):
         import asyncio

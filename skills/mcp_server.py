@@ -2,8 +2,10 @@
 MCP Server for the skills package – Claude Code Integration.
 
 Exposes the following tools via the Model Context Protocol (MCP):
-- scan_lan   – Scan the local network for active devices
-- wake_on_lan – Send a Wake-on-LAN magic packet to a remote machine
+- scan_lan     – Scan the local network for active devices
+- wake_on_lan  – Send a Wake-on-LAN magic packet to a remote machine
+- scan_ports   – Scan TCP ports on a host to discover open services
+- ping_host    – Check host reachability and measure round-trip latency
 
 Run as a standalone stdio MCP server:
     python -m skills mcp          # via the CLI
@@ -18,12 +20,16 @@ from mcp.server.fastmcp import FastMCP
 
 from skills.network.scanner import scan_lan as _scan_lan
 from skills.network.wol import wake_on_lan as _wake_on_lan
+from skills.network.port_scanner import scan_ports as _scan_ports
+from skills.network.ping import ping_host as _ping_host
 
 mcp = FastMCP(
     name="skills",
     instructions=(
-        "Skills toolkit: scan the local network for devices and send "
-        "Wake-on-LAN magic packets to wake remote machines."
+        "Skills toolkit: scan the local network for devices, send "
+        "Wake-on-LAN magic packets to wake remote machines, scan TCP ports "
+        "on a host to discover open services, and ping hosts to measure "
+        "round-trip latency."
     ),
 )
 
@@ -80,6 +86,57 @@ def wake_on_lan(
         - error     (str | None) – Error message on failure, None on success
     """
     return _wake_on_lan(mac=mac, broadcast=broadcast, port=port)
+
+
+@mcp.tool()
+def scan_ports(
+    host: str,
+    ports: Optional[list[int]] = None,
+    timeout: float = 1.0,
+) -> list[dict]:
+    """Scan TCP ports on a host to discover open services.
+
+    Args:
+        host: IP address or hostname to scan (e.g. "192.168.1.1").
+        ports: List of port numbers to check.  When omitted, a curated set of
+               18 common service ports is used (SSH, HTTP, HTTPS, MySQL, …).
+        timeout: Per-port connection timeout in seconds (default: 1.0).
+
+    Returns:
+        A list of dicts for open ports, sorted by port number.  Each dict:
+        - port    (int) – port number
+        - service (str) – service name (empty string if unknown)
+        - state   (str) – always "open"
+    """
+    return _scan_ports(host=host, ports=ports, timeout=timeout)
+
+
+@mcp.tool()
+def ping_host(
+    host: str,
+    count: int = 4,
+    timeout: float = 2.0,
+) -> dict:
+    """Ping a host and measure round-trip latency.
+
+    Args:
+        host: IP address or hostname to ping (e.g. "192.168.1.1" or "8.8.8.8").
+        count: Number of ICMP packets to send (default: 4).
+        timeout: Per-packet wait timeout in seconds (default: 2.0).
+
+    Returns:
+        A dict with keys:
+        - host             (str)        – target host
+        - reachable        (bool)       – True if at least one reply received
+        - sent             (int)        – packets transmitted
+        - received         (int)        – packets received
+        - packet_loss_pct  (float)      – percentage of lost packets
+        - rtt_min_ms       (float|None) – minimum RTT in milliseconds
+        - rtt_avg_ms       (float|None) – average RTT in milliseconds
+        - rtt_max_ms       (float|None) – maximum RTT in milliseconds
+        - error            (str|None)   – error message on failure, None on success
+    """
+    return _ping_host(host=host, count=count, timeout=timeout)
 
 
 def main() -> None:
