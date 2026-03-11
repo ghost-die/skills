@@ -4,6 +4,17 @@ A collection of intelligent-agent skills implemented in Python.
 
 ---
 
+## 技能列表 (Skills Overview)
+
+| 技能 | 函数 | 说明 |
+|------|------|------|
+| 局域网扫描 | `scan_lan()` | 扫描局域网，发现所有活跃设备，返回 IP / MAC / 主机名 |
+| 网络唤醒 | `wake_on_lan()` | 发送 WOL 魔法包，远程唤醒目标设备 |
+| 端口扫描 | `scan_ports()` | 扫描主机开放的 TCP 端口，识别运行中的服务 |
+| 延迟检测 | `ping_host()` | Ping 主机，检测可达性并测量往返延迟 (RTT) |
+
+---
+
 ## 技能 1 – 局域网设备扫描 & 网络唤醒 (LAN Scanner & Wake-on-LAN)
 
 ### 功能说明
@@ -97,7 +108,15 @@ openclaw config get mcpServers.skills
 帮我唤醒 MAC 地址为 aa:bb:cc:dd:ee:ff 的电脑
 ```
 
-OpenClaw 将自动调用 `scan_lan` 或 `wake_on_lan` 工具完成操作。
+```
+扫描 192.168.1.1 的开放端口
+```
+
+```
+Ping 一下 8.8.8.8，看延迟多少
+```
+
+OpenClaw 将自动调用对应工具完成操作。
 
 ---
 
@@ -144,7 +163,15 @@ claude mcp list
 帮我唤醒 MAC 地址为 aa:bb:cc:dd:ee:ff 的电脑
 ```
 
-Claude 将自动调用 `scan_lan` 或 `wake_on_lan` 工具完成操作。
+```
+扫描 192.168.1.1 上开放了哪些端口
+```
+
+```
+Ping 一下 8.8.8.8，测一下延迟
+```
+
+Claude 将自动调用对应工具完成操作。
 
 ---
 
@@ -179,6 +206,35 @@ else:
     print("发送失败:", result["error"])
 ```
 
+#### 扫描开放端口（Port Scanner）
+
+```python
+from skills.network import scan_ports
+
+# 使用默认的 18 个常见服务端口
+for r in scan_ports("192.168.1.1"):
+    print(f"{r['port']}/{r['service']}: {r['state']}")
+# 22/ssh: open
+# 80/http: open
+# 443/https: open
+
+# 自定义端口列表
+results = scan_ports("192.168.1.1", ports=[22, 80, 443, 8080], timeout=1.0)
+```
+
+#### 检测主机延迟（Ping）
+
+```python
+from skills.network import ping_host
+
+result = ping_host("8.8.8.8", count=4)
+if result["reachable"]:
+    print(f"主机可达，平均延迟: {result['rtt_avg_ms']:.1f} ms")
+    print(f"丢包率: {result['packet_loss_pct']:.0f}%")
+else:
+    print("主机不可达")
+```
+
 #### 命令行
 
 ```bash
@@ -189,6 +245,14 @@ python -m skills scan --subnet 10.0.0.0/24 --timeout 3
 # 发送唤醒包
 python -m skills wake aa:bb:cc:dd:ee:ff
 python -m skills wake aa:bb:cc:dd:ee:ff --broadcast 192.168.1.255 --port 9
+
+# 扫描端口
+python -m skills port-scan 192.168.1.1
+python -m skills port-scan 192.168.1.1 --ports 22,80,443,8080 --timeout 1
+
+# 检测延迟
+python -m skills ping 8.8.8.8
+python -m skills ping 192.168.1.1 --count 4 --timeout 2
 
 # 启动 MCP 服务器（供 Claude Code / MCP 客户端使用）
 python -m skills mcp
@@ -217,6 +281,18 @@ skills-mcp
 
 目标机器需在 BIOS/固件中开启 WOL 功能。
 
+#### 端口扫描
+
+使用 TCP 连接探测指定端口是否开放。通过 `ThreadPoolExecutor` 并发探测，
+默认扫描 18 个常见服务端口（SSH、HTTP、HTTPS、MySQL、RDP 等），
+也支持自定义端口列表。结果按端口号升序排列。
+
+#### 延迟检测
+
+调用系统 `ping` 命令并解析其输出，支持 Linux、macOS、Windows 三个平台。
+返回发包数、收包数、丢包率及 min/avg/max RTT（毫秒），
+主机不可达或命令失败时以结构化错误信息返回，不抛出异常。
+
 ### 项目结构
 
 ```
@@ -228,11 +304,15 @@ skills/
 │   └── network/
 │       ├── __init__.py
 │       ├── scanner.py       # 局域网设备扫描
-│       └── wol.py           # Wake-on-LAN
+│       ├── wol.py           # Wake-on-LAN
+│       ├── port_scanner.py  # TCP 端口扫描
+│       └── ping.py          # 延迟检测 / Ping
 ├── tests/
 │   ├── test_mcp_server.py
 │   ├── test_scanner.py
-│   └── test_wol.py
+│   ├── test_wol.py
+│   ├── test_port_scanner.py
+│   └── test_ping.py
 ├── examples/
 │   └── network_example.py
 ├── pyproject.toml
