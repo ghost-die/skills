@@ -1,0 +1,2 @@
+[console_scripts]
+skills = skills.__main__:main
