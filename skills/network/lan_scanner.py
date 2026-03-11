@@ -1,5 +1,5 @@
 """
-LAN Device Scanner - 局域网设备扫描器
+LAN Device Scanner - 局域网设备扫描器 (lan_scanner)
 
 Discovers devices on the local network using ARP requests.
 Supports both scapy-based ARP scanning (more accurate) and

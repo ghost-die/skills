@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from skills.network.scanner import Device
+from skills.network.lan_scanner import Device
 
 
 class TestMcpServerTools:

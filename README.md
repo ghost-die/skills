@@ -1,10 +1,20 @@
 # Skills – 智能体技能集合
 
-A collection of intelligent-agent skills implemented in Python.
+A collection of intelligent-agent skills implemented in Python, organised by category.
 
 ---
 
-## 技能列表 (Skills Overview)
+## 技能分类 (Skill Categories)
+
+| 分类 | 模块 | 说明 |
+|------|------|------|
+| 网络技能 | `skills.network` | 局域网扫描、网络唤醒、端口扫描、延迟检测 |
+
+---
+
+## 网络技能 (Network Skills)
+
+### 技能列表
 
 | 技能 | 函数 | 说明 |
 |------|------|------|
@@ -12,17 +22,6 @@ A collection of intelligent-agent skills implemented in Python.
 | 网络唤醒 | `wake_on_lan()` | 发送 WOL 魔法包，远程唤醒目标设备 |
 | 端口扫描 | `scan_ports()` | 扫描主机开放的 TCP 端口，识别运行中的服务 |
 | 延迟检测 | `ping_host()` | Ping 主机，检测可达性并测量往返延迟 (RTT) |
-
----
-
-## 技能 1 – 局域网设备扫描 & 网络唤醒 (LAN Scanner & Wake-on-LAN)
-
-### 功能说明
-
-| 功能 | 说明 |
-|------|------|
-| `scan_lan()` | 扫描局域网，发现所有活跃设备，返回 IP / MAC / 主机名 |
-| `wake_on_lan()` | 发送 WOL 魔法包，远程唤醒目标设备 |
 
 ### 安装
 
@@ -301,16 +300,16 @@ skills/
 │   ├── __init__.py
 │   ├── __main__.py          # CLI 入口
 │   ├── mcp_server.py        # MCP 服务器（Claude Code 集成）
-│   └── network/
+│   └── network/             # 网络技能分类 (Network Skills)
 │       ├── __init__.py
-│       ├── scanner.py       # 局域网设备扫描
-│       ├── wol.py           # Wake-on-LAN
+│       ├── lan_scanner.py   # 局域网设备扫描
+│       ├── wake_on_lan.py   # Wake-on-LAN 网络唤醒
 │       ├── port_scanner.py  # TCP 端口扫描
 │       └── ping.py          # 延迟检测 / Ping
 ├── tests/
 │   ├── test_mcp_server.py
-│   ├── test_scanner.py
-│   ├── test_wol.py
+│   ├── test_lan_scanner.py
+│   ├── test_wake_on_lan.py
 │   ├── test_port_scanner.py
 │   └── test_ping.py
 ├── examples/
