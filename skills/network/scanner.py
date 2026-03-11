@@ -24,6 +24,17 @@ try:
 except ImportError:
     pass
 
+_NMAP_AVAILABLE = False
+try:
+    import nmap as _nmap  # type: ignore
+
+    _nmap.PortScanner()  # raises PortScannerError if nmap binary is not installed
+    _NMAP_AVAILABLE = True
+except ImportError:
+    pass  # python-nmap library not installed
+except Exception:
+    pass  # nmap binary not found or other initialisation error
+
 
 @dataclass
 class Device:
@@ -68,7 +79,7 @@ def _resolve_hostname(ip: str) -> str:
     """Attempt a reverse DNS lookup; return empty string on failure."""
     try:
         return socket.gethostbyaddr(ip)[0]
-    except (socket.herror, socket.gaierror):
+    except (socket.herror, socket.gaierror, socket.timeout, OSError):
         return ""
 
 
@@ -90,6 +101,43 @@ def _scan_with_scapy(subnet: str, timeout: float = 2.0) -> list[Device]:
         ip = received.psrc
         mac = received.hwsrc
         hostname = _resolve_hostname(ip)
+        devices.append(Device(ip=ip, mac=mac, hostname=hostname))
+    return devices
+
+
+def _scan_with_nmap(subnet: str, timeout: float = 2.0) -> list[Device]:
+    """
+    Scan a subnet using nmap (requires the ``nmap`` binary on the system).
+
+    nmap discovers hosts via ARP/ICMP probes and resolves hostnames through
+    multiple methods (reverse DNS, mDNS/Bonjour, NetBIOS) – far more
+    reliable than a plain ``gethostbyaddr`` call.
+
+    Args:
+        subnet: Network to scan in CIDR notation (e.g. ``"192.168.1.0/24"``).
+        timeout: Host-discovery timeout in seconds passed to nmap.
+
+    Returns:
+        List of :class:`Device` objects found on the network.
+    """
+    import nmap as _nmap  # type: ignore  # noqa: PLC0415
+
+    nm = _nmap.PortScanner()
+    # -sn  = ping/ARP scan (no port scan)
+    # -R   = always resolve hostnames
+    # --host-timeout = per-host timeout in milliseconds
+    host_timeout_ms = int(timeout * 1000)
+    nm.scan(
+        hosts=subnet,
+        arguments=f"-sn -R --host-timeout {host_timeout_ms}ms",
+    )
+    devices: list[Device] = []
+    for ip in nm.all_hosts():
+        host = nm[ip]
+        mac = host["addresses"].get("mac", "")
+        # nmap can return multiple hostnames; prefer the first PTR name
+        hostnames = host.get("hostnames", [])
+        hostname = hostnames[0]["name"] if hostnames else ""
         devices.append(Device(ip=ip, mac=mac, hostname=hostname))
     return devices
 
@@ -190,13 +238,15 @@ def scan_lan(
 
     Automatically selects the best available scanning strategy:
 
+    * **nmap scan** – most accurate; resolves hostnames via DNS, mDNS, and
+      NetBIOS; requires the ``nmap`` binary (install as *OpenClaw*: see README).
     * **scapy ARP sweep** – accurate and fast; requires root/admin.
     * **ping sweep + ARP cache** – no elevated privileges needed; slower.
 
     Args:
         subnet: CIDR subnet to scan (e.g. ``"192.168.1.0/24"``).
                 Defaults to the local machine's ``/24`` subnet.
-        timeout: Seconds to wait for ARP replies (scapy mode only).
+        timeout: Seconds to wait for ARP replies / host discovery.
         max_workers: Concurrent ping threads (ping-fallback mode only).
 
     Returns:
@@ -212,7 +262,9 @@ def scan_lan(
     if subnet is None:
         subnet = get_local_subnet()
 
-    if _SCAPY_AVAILABLE:
+    if _NMAP_AVAILABLE:
+        devices = _scan_with_nmap(subnet, timeout=timeout)
+    elif _SCAPY_AVAILABLE:
         devices = _scan_with_scapy(subnet, timeout=timeout)
     else:
         devices = _scan_with_ping(subnet, max_workers=max_workers)
