@@ -54,6 +54,53 @@ pip install "skills[nmap]"
 安装完成后运行 `nmap --version` 确认 nmap 可正常访问，随后重新运行
 `scan_lan()` 即可看到完整的主机名信息。
 
+### 在 OpenClaw 中安装 (MCP 集成)
+
+本项目内置 MCP 服务器，可将技能直接注册到 [OpenClaw](https://openclawlaunch.com) 中，作为可调用工具使用。
+
+#### 步骤一：安装软件包
+
+```bash
+pip install -e .
+```
+
+#### 步骤二：将 MCP 服务器注册到 OpenClaw
+
+```bash
+openclaw config set mcpServers.skills.command "skills-mcp"
+```
+
+> **提示**：`skills-mcp` 是安装后自动注册的命令行入口，直接启动 stdio MCP 服务器。
+> 你也可以用完整 Python 路径代替：
+> ```bash
+> openclaw config set mcpServers.skills.command "python"
+> openclaw config set mcpServers.skills.args '["-m", "skills", "mcp"]'
+> ```
+
+#### 步骤三：验证注册结果
+
+```bash
+openclaw config get mcpServers.skills
+```
+
+输出中应该可以看到 `skills` 服务器配置已注册。
+
+#### 在 OpenClaw 中使用
+
+注册后，在 OpenClaw 对话中直接描述需求即可：
+
+```
+帮我扫描局域网，找出所有活跃设备
+```
+
+```
+帮我唤醒 MAC 地址为 aa:bb:cc:dd:ee:ff 的电脑
+```
+
+OpenClaw 将自动调用 `scan_lan` 或 `wake_on_lan` 工具完成操作。
+
+---
+
 ### 在 Claude Code 中安装 (MCP 集成)
 
 本项目内置 MCP（Model Context Protocol）服务器，可将技能直接注册到
