@@ -21,6 +21,53 @@ pip install -e .
 pip install scapy
 ```
 
+### 在 Claude Code 中安装 (MCP 集成)
+
+本项目内置 MCP（Model Context Protocol）服务器，可将技能直接注册到
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) 中，作为可调用工具使用。
+
+#### 步骤一：安装软件包
+
+```bash
+pip install -e .
+```
+
+#### 步骤二：将 MCP 服务器注册到 Claude Code
+
+```bash
+claude mcp add skills -- skills-mcp
+```
+
+> **提示**：`skills-mcp` 是安装后自动注册的命令行入口，直接启动 stdio MCP 服务器。
+> 你也可以用完整 Python 路径代替：
+> ```bash
+> claude mcp add skills -- python -m skills mcp
+> ```
+
+#### 步骤三：验证注册结果
+
+```bash
+claude mcp list
+```
+
+输出中应该可以看到 `skills` 服务器已注册。
+
+#### 在 Claude Code 中使用
+
+注册后，在 Claude Code 对话中直接描述需求即可：
+
+```
+帮我扫描局域网，找出所有活跃设备
+```
+
+```
+帮我唤醒 MAC 地址为 aa:bb:cc:dd:ee:ff 的电脑
+```
+
+Claude 将自动调用 `scan_lan` 或 `wake_on_lan` 工具完成操作。
+
+---
+
 ### 快速上手
 
 #### 扫描局域网设备
@@ -62,6 +109,11 @@ python -m skills scan --subnet 10.0.0.0/24 --timeout 3
 # 发送唤醒包
 python -m skills wake aa:bb:cc:dd:ee:ff
 python -m skills wake aa:bb:cc:dd:ee:ff --broadcast 192.168.1.255 --port 9
+
+# 启动 MCP 服务器（供 Claude Code / MCP 客户端使用）
+python -m skills mcp
+# 或
+skills-mcp
 ```
 
 ### 实现原理
@@ -87,11 +139,13 @@ skills/
 ├── skills/
 │   ├── __init__.py
 │   ├── __main__.py          # CLI 入口
+│   ├── mcp_server.py        # MCP 服务器（Claude Code 集成）
 │   └── network/
 │       ├── __init__.py
 │       ├── scanner.py       # 局域网设备扫描
 │       └── wol.py           # Wake-on-LAN
 ├── tests/
+│   ├── test_mcp_server.py
 │   ├── test_scanner.py
 │   └── test_wol.py
 ├── examples/
