@@ -21,6 +21,39 @@ pip install -e .
 pip install scapy
 ```
 
+#### 安装 OpenClaw（nmap）以获取主机名 🦾
+
+> **OpenClaw = [nmap](https://nmap.org)**，一款强大的开源网络扫描工具。
+> 安装后，`scan_lan()` 将自动使用 nmap 作为首选引擎，
+> 并通过 DNS、mDNS/Bonjour 和 NetBIOS 等多种途径解析主机名，
+> 极大提升主机名的识别率。
+
+**Linux（Debian / Ubuntu）**
+
+```bash
+sudo apt-get install nmap
+pip install "skills[nmap]"   # 安装 python-nmap 绑定库
+```
+
+**macOS（Homebrew）**
+
+```bash
+brew install nmap
+pip install "skills[nmap]"
+```
+
+**Windows**
+
+1. 从 <https://nmap.org/download.html> 下载并安装 nmap。
+2. 安装 Python 绑定：
+
+```bash
+pip install "skills[nmap]"
+```
+
+安装完成后运行 `nmap --version` 确认 nmap 可正常访问，随后重新运行
+`scan_lan()` 即可看到完整的主机名信息。
+
 ### 在 Claude Code 中安装 (MCP 集成)
 
 本项目内置 MCP（Model Context Protocol）服务器，可将技能直接注册到
@@ -120,8 +153,13 @@ skills-mcp
 
 #### 局域网扫描
 
-1. **Scapy ARP sweep（推荐，需 root）** – 发送 ARP 广播，分析应答包，准确获取 IP + MAC。
-2. **Ping sweep + ARP cache（无需 root）** – 并发 ping 所有主机填充系统 ARP 缓存，再读取
+扫描引擎按以下优先级自动选择：
+
+1. **nmap 扫描（最推荐，需安装 nmap 二进制）** – 主机发现综合使用 ARP/ICMP
+   探测，并通过反向 DNS、mDNS/Bonjour、NetBIOS 等多种途径解析主机名，
+   是识别主机名最可靠的方式。安装方式见 [安装 OpenClaw（nmap）](#安装-openclaw-nmap-以获取主机名-) 一节。
+2. **Scapy ARP sweep（需 root）** – 发送 ARP 广播，分析应答包，准确获取 IP + MAC。
+3. **Ping sweep + ARP cache（无需 root）** – 并发 ping 所有主机填充系统 ARP 缓存，再读取
    `/proc/net/arp`（Linux）或 `arp -a`（跨平台）获取 MAC 地址。
 
 #### Wake-on-LAN 魔法包格式
