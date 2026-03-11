@@ -4,6 +4,7 @@ CLI entry point for the skills package.
 Usage:
     python -m skills scan [--subnet SUBNET] [--timeout TIMEOUT]
     python -m skills wake <MAC> [--broadcast BROADCAST] [--port PORT]
+    python -m skills mcp
 """
 
 from __future__ import annotations
@@ -43,6 +44,12 @@ def cmd_wake(args: argparse.Namespace) -> int:
     else:
         print(f"Error: {result['error']}", file=sys.stderr)
         return 1
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:  # noqa: ARG001
+    from skills.mcp_server import main as mcp_main
+    mcp_main()
+    return 0
 
 
 def main() -> int:
@@ -91,12 +98,20 @@ def main() -> int:
         help="UDP port (default: 9)",
     )
 
+    # --- mcp ---
+    subparsers.add_parser(
+        "mcp",
+        help="启动 MCP 服务器 / Start the MCP server for Claude Code",
+    )
+
     args = parser.parse_args()
 
     if args.command == "scan":
         return cmd_scan(args)
     elif args.command == "wake":
         return cmd_wake(args)
+    elif args.command == "mcp":
+        return cmd_mcp(args)
     return 0
 
 
